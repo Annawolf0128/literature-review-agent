@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+      - name: Compile source
+        run: python -m compileall src
+      - name: Check CLI
+        run: |
+          lit-agent --help
+          lit-agent init-config --topic "trust game" --output /tmp/project_config.yaml
+          lit-agent build \
+            --config examples/trust-game/project_config.yaml \
+            --data examples/trust-game/literature-review-data.json \
+            --output /tmp/literature-review.html
