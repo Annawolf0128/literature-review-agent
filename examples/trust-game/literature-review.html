@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trust as Reinvestable Social Capital</title>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --panel: #ffffff;
+    --text: #111827;
+    --muted: #64748b;
+    --line: #dbe3ef;
+    --accent: #0f766e;
+    --accent-soft: #ccfbf1;
+    --warn: #b45309;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    color: var(--text);
+    background: var(--bg);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif;
+  }
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px; }
+  h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: 0; }
+  h2 { margin: 30px 0 12px; font-size: 20px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+  h3 { margin: 0; font-size: 16px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .controls {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) 220px auto auto auto;
+    gap: 10px;
+    margin-top: 16px;
+    align-items: center;
+  }
+  input, select, textarea, button {
+    font: inherit;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: #fff;
+    color: var(--text);
+  }
+  input, select { min-height: 38px; padding: 7px 10px; }
+  button { min-height: 38px; padding: 7px 11px; cursor: pointer; }
+  button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  main.wrap { padding-top: 18px; }
+  .category { margin-bottom: 26px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+  }
+  .card.needs-review { border-color: #fbbf24; }
+  .card-head { display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .title { font-weight: 700; line-height: 1.35; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .star {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    color: var(--warn);
+    font-size: 19px;
+    line-height: 1;
+    padding: 0;
+  }
+  .tagline { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 12px;
+    color: #115e59;
+    background: var(--accent-soft);
+  }
+  .tag.review { color: #92400e; background: #fef3c7; }
+  a { color: #1d4ed8; text-decoration: none; overflow-wrap: anywhere; }
+  a:hover { text-decoration: underline; }
+  .section-title { color: var(--muted); font-weight: 700; font-size: 12px; text-transform: uppercase; margin: 10px 0 4px; }
+  ul { margin: 4px 0 0 18px; padding: 0; }
+  li { margin: 3px 0; }
+  textarea {
+    width: 100%;
+    min-height: 72px;
+    resize: vertical;
+    padding: 8px 10px;
+    margin-top: 8px;
+    background: #fbfdff;
+  }
+  .hidden { display: none !important; }
+  .empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; padding: 22px; background: #fff; }
+  @media (max-width: 760px) {
+    .controls { grid-template-columns: 1fr; }
+    .wrap { padding: 18px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Trust as Reinvestable Social Capital</h1>
+    <div class="sub">Updated 2026-06-20 · <span id="count"></span></div>
+    <div class="controls">
+      <input id="search" type="search" placeholder="Search title, author, keyword, finding">
+      <select id="categoryFilter"></select>
+      <button id="starFilter" type="button">☆ Starred</button>
+      <button id="exportNotes" type="button">Export notes</button>
+      <button id="importNotes" type="button">Import notes</button>
+      <input id="importFile" class="hidden" type="file" accept="application/json">
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <div id="review"></div>
+</main>
+<script id="review-data" type="application/json">{"title": "Trust as Reinvestable Social Capital", "updated": "2026-06-20", "categories": ["Unsorted / To Review"], "papers": [{"id": "berg1995trust", "type": "experiment", "category": "Unsorted / To Review", "citation": "Berg, Joyce, Dickhaut, John, McCabe, Kevin (1995). Trust, Reciprocity, and Social History. Games and Economic Behavior, 10(1), 122--142.", "year": "1995", "title": "Trust, Reciprocity, and Social History", "authors": ["Berg, Joyce", "Dickhaut, John", "McCabe, Kevin"], "doi": "10.1006/game.1995.1027", "url": "https://doi.org/10.1006/game.1995.1027", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "glaeser2000measuring", "type": "measurement", "category": "Unsorted / To Review", "citation": "Glaeser, Edward L., Laibson, David I., Scheinkman, Jose A., Soutter, Christine L. (2000). Measuring Trust. The Quarterly Journal of Economics, 115(3), 811--846.", "year": "2000", "title": "Measuring Trust", "authors": ["Glaeser, Edward L.", "Laibson, David I.", "Scheinkman, Jose A.", "Soutter, Christine L."], "doi": "10.1162/003355300554926", "url": "https://doi.org/10.1162/003355300554926", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "johnson2011trust", "type": "review", "category": "Unsorted / To Review", "citation": "Johnson, Noel D., Mislin, Alexandra A. (2011). Trust Games: A Meta-Analysis. Journal of Economic Psychology, 32(5), 865--889.", "year": "2011", "title": "Trust Games: A Meta-Analysis", "authors": ["Johnson, Noel D.", "Mislin, Alexandra A."], "doi": "10.1016/j.joep.2011.05.007", "url": "https://doi.org/10.1016/j.joep.2011.05.007", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "benner2010trusting", "type": "experiment", "category": "Unsorted / To Review", "citation": "Ben-Ner, Avner, Halldorsson, Freyr (2010). Trusting and Trustworthiness: What Are They, How to Measure Them, and What Affects Them. Journal of Economic Psychology, 31(1), 64--79.", "year": "2010", "title": "Trusting and Trustworthiness: What Are They, How to Measure Them, and What Affects Them", "authors": ["Ben-Ner, Avner", "Halldorsson, Freyr"], "doi": "", "url": "", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "fehr2009economics", "type": "experiment", "category": "Unsorted / To Review", "citation": "Fehr, Ernst (2009). On the Economics and Biology of Trust. Journal of the European Economic Association, 7(2--3), 235--266.", "year": "2009", "title": "On the Economics and Biology of Trust", "authors": ["Fehr, Ernst"], "doi": "", "url": "", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "kreps1982reputation", "type": "theory", "category": "Unsorted / To Review", "citation": "Kreps, David M., Wilson, Robert (1982). Reputation and Imperfect Information. Journal of Economic Theory, 27(2), 253--279.", "year": "1982", "title": "Reputation and Imperfect Information", "authors": ["Kreps, David M.", "Wilson, Robert"], "doi": "", "url": "", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "kreps1982rational", "type": "theory", "category": "Unsorted / To Review", "citation": "Kreps, David M., Milgrom, Paul, Roberts, John, Wilson, Robert (1982). Rational Cooperation in the Finitely Repeated Prisoners' Dilemma. Journal of Economic Theory, 27(2), 245--252.", "year": "1982", "title": "Rational Cooperation in the Finitely Repeated Prisoners' Dilemma", "authors": ["Kreps, David M.", "Milgrom, Paul", "Roberts, John", "Wilson, Robert"], "doi": "", "url": "", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "fudenberg1989reputation", "type": "experiment", "category": "Unsorted / To Review", "citation": "Fudenberg, Drew, Levine, David K. (1989). Reputation and Equilibrium Selection in Games with a Patient Player. Econometrica, 57(4), 759--778.", "year": "1989", "title": "Reputation and Equilibrium Selection in Games with a Patient Player", "authors": ["Fudenberg, Drew", "Levine, David K."], "doi": "", "url": "", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "mailath2006repeated", "type": "book", "category": "Unsorted / To Review", "citation": "Mailath, George J., Samuelson, Larry (2006). Repeated Games and Reputations: Long-Run Relationships. Oxford University Press.", "year": "2006", "title": "Repeated Games and Reputations: Long-Run Relationships", "authors": ["Mailath, George J.", "Samuelson, Larry"], "doi": "", "url": "", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "charness2011trust", "type": "experiment", "category": "Unsorted / To Review", "citation": "Charness, Gary, Du, Ninghua, Yang, Chun-Lei (2011). Trust and Trustworthiness Reputations in an Investment Game. Games and Economic Behavior, 72(2), 361--375.", "year": "2011", "title": "Trust and Trustworthiness Reputations in an Investment Game", "authors": ["Charness, Gary", "Du, Ninghua", "Yang, Chun-Lei"], "doi": "10.1016/j.geb.2010.09.002", "url": "https://doi.org/10.1016/j.geb.2010.09.002", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "bohnet2004repetition", "type": "experiment", "category": "Unsorted / To Review", "citation": "Bohnet, Iris, Huck, Steffen (2004). Repetition and Reputation: Implications for Trust and Trustworthiness When Institutions Change. American Economic Review, 94(2), 362--366.", "year": "2004", "title": "Repetition and Reputation: Implications for Trust and Trustworthiness When Institutions Change", "authors": ["Bohnet, Iris", "Huck, Steffen"], "doi": "", "url": "", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "charness2007intention", "type": "experiment", "category": "Unsorted / To Review", "citation": "Charness, Gary, Levine, David I. (2007). Intention and Stochastic Outcomes: An Experimental Study. The Economic Journal, 117(522), 1051--1072.", "year": "2007", "title": "Intention and Stochastic Outcomes: An Experimental Study", "authors": ["Charness, Gary", "Levine, David I."], "doi": "10.1111/j.1468-0297.2007.02066.x", "url": "https://doi.org/10.1111/j.1468-0297.2007.02066.x", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "cox2006assigning", "type": "experiment", "category": "Unsorted / To Review", "citation": "Cox, James C., Deck, Cary A. (2006). Assigning Intentions when Actions Are Unobservable: The Impact of Trembling in the Trust Game. Southern Economic Journal, 73(2), 307--314.", "year": "2006", "title": "Assigning Intentions when Actions Are Unobservable: The Impact of Trembling in the Trust Game", "authors": ["Cox, James C.", "Deck, Cary A."], "doi": "10.1002/j.2325-8012.2006.tb00773.x", "url": "https://doi.org/10.1002/j.2325-8012.2006.tb00773.x", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "toussaert2017intention", "type": "other", "category": "Unsorted / To Review", "citation": "Toussaert, S\\'everine (2017). Intention-Based Reciprocity and Signaling of Intentions. Journal of Economic Behavior \\& Organization, 137, 132--144.", "year": "2017", "title": "Intention-Based Reciprocity and Signaling of Intentions", "authors": ["Toussaert, S\\'everine"], "doi": "10.1016/j.jebo.2017.03.001", "url": "https://doi.org/10.1016/j.jebo.2017.03.001", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "rand2015thought", "type": "experiment", "category": "Unsorted / To Review", "citation": "Rand, David G., Fudenberg, Drew, Dreber, Anna (2015). It's the Thought That Counts: The Role of Intentions in Noisy Repeated Games. Journal of Economic Behavior \\& Organization, 116, 481--499.", "year": "2015", "title": "It's the Thought That Counts: The Role of Intentions in Noisy Repeated Games", "authors": ["Rand, David G.", "Fudenberg, Drew", "Dreber, Anna"], "doi": "10.1016/j.jebo.2015.05.013", "url": "https://doi.org/10.1016/j.jebo.2015.05.013", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "eil2011economics", "type": "other", "category": "Unsorted / To Review", "citation": "Eil, David, Rao, Justin M. (2011). The Good News-Bad News Effect: Asymmetric Processing of Objective Information about Yourself. American Economic Journal: Microeconomics, 3(2), 114--138.", "year": "2011", "title": "The Good News-Bad News Effect: Asymmetric Processing of Objective Information about Yourself", "authors": ["Eil, David", "Rao, Justin M."], "doi": "", "url": "", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "mobius2022managing", "type": "experiment", "category": "Unsorted / To Review", "citation": "M\\\"obius, Markus M., Niederle, Muriel, Niehaus, Paul, Rosenblat, Tanya S. (2022). Managing Self-Confidence: Theory and Experimental Evidence. Management Science, 68(11), 7793--7817.", "year": "2022", "title": "Managing Self-Confidence: Theory and Experimental Evidence", "authors": ["M\\\"obius, Markus M.", "Niederle, Muriel", "Niehaus, Paul", "Rosenblat, Tanya S."], "doi": "", "url": "", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "bikhchandani1992theory", "type": "theory", "category": "Unsorted / To Review", "citation": "Bikhchandani, Sushil, Hirshleifer, David, Welch, Ivo (1992). A Theory of Fads, Fashion, Custom, and Cultural Change as Informational Cascades. Journal of Political Economy, 100(5), 992--1026.", "year": "1992", "title": "A Theory of Fads, Fashion, Custom, and Cultural Change as Informational Cascades", "authors": ["Bikhchandani, Sushil", "Hirshleifer, David", "Welch, Ivo"], "doi": "", "url": "", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "coleman1988social", "type": "other", "category": "Unsorted / To Review", "citation": "Coleman, James S. (1988). Social Capital in the Creation of Human Capital. American Journal of Sociology, 94, S95--S120.", "year": "1988", "title": "Social Capital in the Creation of Human Capital", "authors": ["Coleman, James S."], "doi": "", "url": "", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "knack1997social", "type": "other", "category": "Unsorted / To Review", "citation": "Knack, Stephen, Keefer, Philip (1997). Does Social Capital Have an Economic Payoff? A Cross-Country Investigation. The Quarterly Journal of Economics, 112(4), 1251--1288.", "year": "1997", "title": "Does Social Capital Have an Economic Payoff? A Cross-Country Investigation", "authors": ["Knack, Stephen", "Keefer, Philip"], "doi": "10.1162/003355300555475", "url": "https://doi.org/10.1162/003355300555475", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "guiso2004role", "type": "empirical", "category": "Unsorted / To Review", "citation": "Guiso, Luigi, Sapienza, Paola, Zingales, Luigi (2004). The Role of Social Capital in Financial Development. American Economic Review, 94(3), 526--556.", "year": "2004", "title": "The Role of Social Capital in Financial Development", "authors": ["Guiso, Luigi", "Sapienza, Paola", "Zingales, Luigi"], "doi": "10.1257/0002828041464498", "url": "https://doi.org/10.1257/0002828041464498", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "laporta1997trust", "type": "experiment", "category": "Unsorted / To Review", "citation": "La Porta, Rafael, Lopez-de-Silanes, Florencio, Shleifer, Andrei, Vishny, Robert W. (1997). Trust in Large Organizations. American Economic Review Papers and Proceedings, 87(2), 333--338.", "year": "1997", "title": "Trust in Large Organizations", "authors": ["La Porta, Rafael", "Lopez-de-Silanes, Florencio", "Shleifer, Andrei", "Vishny, Robert W."], "doi": "10.3386/w5864", "url": "https://doi.org/10.3386/w5864", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}, {"id": "tabellini2010culture", "type": "empirical", "category": "Unsorted / To Review", "citation": "Tabellini, Guido (2010). Culture and Institutions: Economic Development in the Regions of Europe. Journal of the European Economic Association, 8(4), 677--716.", "year": "2010", "title": "Culture and Institutions: Economic Development in the Regions of Europe", "authors": ["Tabellini, Guido"], "doi": "10.1111/j.1542-4774.2010.tb00537.x", "url": "https://doi.org/10.1111/j.1542-4774.2010.tb00537.x", "summary": "", "design": [], "findings": [], "keywords": [], "project_note": "", "needs_review": true, "source": "BibTeX metadata"}]}</script>
+<script>
+(() => {
+  const data = JSON.parse(document.getElementById("review-data").textContent);
+  const review = document.getElementById("review");
+  const search = document.getElementById("search");
+  const categoryFilter = document.getElementById("categoryFilter");
+  const starFilter = document.getElementById("starFilter");
+  const count = document.getElementById("count");
+  const importFile = document.getElementById("importFile");
+  let starredOnly = false;
+  const key = id => `literature-review-builder:${id}`;
+  const getState = id => {
+    try { return JSON.parse(localStorage.getItem(key(id)) || "{}"); }
+    catch { return {}; }
+  };
+  const setState = (id, state) => localStorage.setItem(key(id), JSON.stringify(state));
+  const categoryCounts = {};
+  for (const paper of data.papers || []) {
+    const category = paper.category || "Unsorted / To Review";
+    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+  }
+  const categories = ["All categories", ...Object.keys(categoryCounts)];
+  categoryFilter.innerHTML = categories.map(c => {
+    const label = c === "All categories" ? `${c} (${(data.papers || []).length})` : `${c} (${categoryCounts[c]})`;
+    return `<option value="${escapeHtml(c)}">${escapeHtml(label)}</option>`;
+  }).join("");
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  }
+  function normalize(value) { return String(value || "").toLowerCase(); }
+  function list(items) {
+    if (!items || !items.length) return "";
+    return `<ul>${items.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+  }
+  function paperText(p) {
+    return normalize([
+      p.title, p.year, (p.authors || []).join(" "), p.citation, p.summary,
+      (p.design || []).join(" "), (p.findings || []).join(" "), (p.keywords || []).join(" ")
+    ].join(" "));
+  }
+  function render() {
+    const q = normalize(search.value);
+    const cat = categoryFilter.value;
+    const papers = (data.papers || []).filter(p => {
+      const state = getState(p.id);
+      if (starredOnly && !state.starred) return false;
+      if (cat !== "All categories" && (p.category || "Unsorted / To Review") !== cat) return false;
+      if (q && !paperText(p).includes(q)) return false;
+      return true;
+    });
+    count.textContent = `${papers.length} / ${(data.papers || []).length} papers`;
+    if (!papers.length) {
+      review.innerHTML = `<div class="empty">No papers match the current filters.</div>`;
+      return;
+    }
+    const grouped = {};
+    for (const p of papers) {
+      const c = p.category || "Unsorted / To Review";
+      (grouped[c] ||= []).push(p);
+    }
+    review.innerHTML = Object.entries(grouped).map(([category, group]) => `
+      <section class="category">
+        <h2>${escapeHtml(category)} <span class="sub">${group.length}</span></h2>
+        <div class="grid">${group.map(card).join("")}</div>
+      </section>
+    `).join("");
+    review.querySelectorAll("[data-star]").forEach(button => {
+      button.addEventListener("click", () => {
+        const id = button.dataset.star;
+        const state = getState(id);
+        state.starred = !state.starred;
+        setState(id, state);
+        render();
+      });
+    });
+    review.querySelectorAll("[data-note]").forEach(box => {
+      box.addEventListener("input", () => {
+        const id = box.dataset.note;
+        const state = getState(id);
+        state.note = box.value;
+        setState(id, state);
+      });
+    });
+  }
+  function card(p) {
+    const state = getState(p.id);
+    const doiUrl = p.doi ? `https://doi.org/${p.doi}` : p.url;
+    const typeClass = p.needs_review ? "review" : "";
+    return `
+      <article class="card ${p.needs_review ? "needs-review" : ""}">
+        <div class="card-head">
+          <div>
+            <div class="title">${escapeHtml(p.title)}</div>
+            <div class="meta">${escapeHtml((p.authors || []).join(", "))} ${p.year ? `(${escapeHtml(p.year)})` : ""}</div>
+          </div>
+          <button class="star ${state.starred ? "active" : ""}" data-star="${escapeHtml(p.id)}" title="Star">${state.starred ? "★" : "☆"}</button>
+        </div>
+        <div class="tagline">
+          <span class="tag">${escapeHtml(p.type || "other")}</span>
+          ${p.needs_review ? `<span class="tag ${typeClass}">needs review</span>` : ""}
+          ${(p.keywords || []).slice(0, 4).map(k => `<span class="tag">${escapeHtml(k)}</span>`).join("")}
+        </div>
+        <div class="meta">${escapeHtml(p.citation || "")}</div>
+        ${doiUrl ? `<div><a href="${escapeHtml(doiUrl)}" target="_blank" rel="noopener">${escapeHtml(doiUrl)}</a></div>` : ""}
+        ${p.summary ? `<p>${escapeHtml(p.summary)}</p>` : ""}
+        ${p.design && p.design.length ? `<div class="section-title">Design / Method</div>${list(p.design)}` : ""}
+        ${p.findings && p.findings.length ? `<div class="section-title">Main Findings</div>${list(p.findings)}` : ""}
+        ${p.project_note ? `<div class="section-title">Project note</div><p>${escapeHtml(p.project_note)}</p>` : ""}
+        <textarea data-note="${escapeHtml(p.id)}" placeholder="Your notes">${escapeHtml(state.note || "")}</textarea>
+      </article>
+    `;
+  }
+  search.addEventListener("input", render);
+  categoryFilter.addEventListener("change", render);
+  starFilter.addEventListener("click", () => {
+    starredOnly = !starredOnly;
+    starFilter.classList.toggle("active", starredOnly);
+    render();
+  });
+  document.getElementById("exportNotes").addEventListener("click", () => {
+    const notes = {};
+    for (const p of data.papers || []) notes[p.id] = getState(p.id);
+    const blob = new Blob([JSON.stringify(notes, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "literature-review-notes.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  document.getElementById("importNotes").addEventListener("click", () => importFile.click());
+  importFile.addEventListener("change", async () => {
+    const file = importFile.files[0];
+    if (!file) return;
+    const notes = JSON.parse(await file.text());
+    for (const [id, state] of Object.entries(notes)) setState(id, state);
+    render();
+  });
+  render();
+})();
+</script>
+</body>
+</html>

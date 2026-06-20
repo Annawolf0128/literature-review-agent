@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --panel: #ffffff;
+    --text: #111827;
+    --muted: #64748b;
+    --line: #dbe3ef;
+    --accent: #0f766e;
+    --accent-soft: #ccfbf1;
+    --warn: #b45309;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    color: var(--text);
+    background: var(--bg);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif;
+  }
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px; }
+  h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: 0; }
+  h2 { margin: 30px 0 12px; font-size: 20px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+  h3 { margin: 0; font-size: 16px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .controls {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) 220px auto auto auto;
+    gap: 10px;
+    margin-top: 16px;
+    align-items: center;
+  }
+  input, select, textarea, button {
+    font: inherit;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: #fff;
+    color: var(--text);
+  }
+  input, select { min-height: 38px; padding: 7px 10px; }
+  button { min-height: 38px; padding: 7px 11px; cursor: pointer; }
+  button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  main.wrap { padding-top: 18px; }
+  .category { margin-bottom: 26px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+  }
+  .card.needs-review { border-color: #fbbf24; }
+  .card-head { display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .title { font-weight: 700; line-height: 1.35; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .star {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    color: var(--warn);
+    font-size: 19px;
+    line-height: 1;
+    padding: 0;
+  }
+  .tagline { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 12px;
+    color: #115e59;
+    background: var(--accent-soft);
+  }
+  .tag.review { color: #92400e; background: #fef3c7; }
+  a { color: #1d4ed8; text-decoration: none; overflow-wrap: anywhere; }
+  a:hover { text-decoration: underline; }
+  .section-title { color: var(--muted); font-weight: 700; font-size: 12px; text-transform: uppercase; margin: 10px 0 4px; }
+  ul { margin: 4px 0 0 18px; padding: 0; }
+  li { margin: 3px 0; }
+  textarea {
+    width: 100%;
+    min-height: 72px;
+    resize: vertical;
+    padding: 8px 10px;
+    margin-top: 8px;
+    background: #fbfdff;
+  }
+  .hidden { display: none !important; }
+  .empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; padding: 22px; background: #fff; }
+  @media (max-width: 760px) {
+    .controls { grid-template-columns: 1fr; }
+    .wrap { padding: 18px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>__TITLE__</h1>
+    <div class="sub">Updated __UPDATED__ · <span id="count"></span></div>
+    <div class="controls">
+      <input id="search" type="search" placeholder="Search title, author, keyword, finding">
+      <select id="categoryFilter"></select>
+      <button id="starFilter" type="button">☆ Starred</button>
+      <button id="exportNotes" type="button">Export notes</button>
+      <button id="importNotes" type="button">Import notes</button>
+      <input id="importFile" class="hidden" type="file" accept="application/json">
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <div id="review"></div>
+</main>
+<script id="review-data" type="application/json">__DATA__</script>
+<script>
+(() => {
+  const data = JSON.parse(document.getElementById("review-data").textContent);
+  const review = document.getElementById("review");
+  const search = document.getElementById("search");
+  const categoryFilter = document.getElementById("categoryFilter");
+  const starFilter = document.getElementById("starFilter");
+  const count = document.getElementById("count");
+  const importFile = document.getElementById("importFile");
+  let starredOnly = false;
+  const key = id => `literature-review-builder:${id}`;
+  const getState = id => {
+    try { return JSON.parse(localStorage.getItem(key(id)) || "{}"); }
+    catch { return {}; }
+  };
+  const setState = (id, state) => localStorage.setItem(key(id), JSON.stringify(state));
+  const categoryCounts = {};
+  for (const paper of data.papers || []) {
+    const category = paper.category || "Unsorted / To Review";
+    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+  }
+  const categories = ["All categories", ...Object.keys(categoryCounts)];
+  categoryFilter.innerHTML = categories.map(c => {
+    const label = c === "All categories" ? `${c} (${(data.papers || []).length})` : `${c} (${categoryCounts[c]})`;
+    return `<option value="${escapeHtml(c)}">${escapeHtml(label)}</option>`;
+  }).join("");
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  }
+  function normalize(value) { return String(value || "").toLowerCase(); }
+  function list(items) {
+    if (!items || !items.length) return "";
+    return `<ul>${items.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+  }
+  function paperText(p) {
+    return normalize([
+      p.title, p.year, (p.authors || []).join(" "), p.citation, p.summary,
+      (p.design || []).join(" "), (p.findings || []).join(" "), (p.keywords || []).join(" ")
+    ].join(" "));
+  }
+  function render() {
+    const q = normalize(search.value);
+    const cat = categoryFilter.value;
+    const papers = (data.papers || []).filter(p => {
+      const state = getState(p.id);
+      if (starredOnly && !state.starred) return false;
+      if (cat !== "All categories" && (p.category || "Unsorted / To Review") !== cat) return false;
+      if (q && !paperText(p).includes(q)) return false;
+      return true;
+    });
+    count.textContent = `${papers.length} / ${(data.papers || []).length} papers`;
+    if (!papers.length) {
+      review.innerHTML = `<div class="empty">No papers match the current filters.</div>`;
+      return;
+    }
+    const grouped = {};
+    for (const p of papers) {
+      const c = p.category || "Unsorted / To Review";
+      (grouped[c] ||= []).push(p);
+    }
+    review.innerHTML = Object.entries(grouped).map(([category, group]) => `
+      <section class="category">
+        <h2>${escapeHtml(category)} <span class="sub">${group.length}</span></h2>
+        <div class="grid">${group.map(card).join("")}</div>
+      </section>
+    `).join("");
+    review.querySelectorAll("[data-star]").forEach(button => {
+      button.addEventListener("click", () => {
+        const id = button.dataset.star;
+        const state = getState(id);
+        state.starred = !state.starred;
+        setState(id, state);
+        render();
+      });
+    });
+    review.querySelectorAll("[data-note]").forEach(box => {
+      box.addEventListener("input", () => {
+        const id = box.dataset.note;
+        const state = getState(id);
+        state.note = box.value;
+        setState(id, state);
+      });
+    });
+  }
+  function card(p) {
+    const state = getState(p.id);
+    const doiUrl = p.doi ? `https://doi.org/${p.doi}` : p.url;
+    const typeClass = p.needs_review ? "review" : "";
+    return `
+      <article class="card ${p.needs_review ? "needs-review" : ""}">
+        <div class="card-head">
+          <div>
+            <div class="title">${escapeHtml(p.title)}</div>
+            <div class="meta">${escapeHtml((p.authors || []).join(", "))} ${p.year ? `(${escapeHtml(p.year)})` : ""}</div>
+          </div>
+          <button class="star ${state.starred ? "active" : ""}" data-star="${escapeHtml(p.id)}" title="Star">${state.starred ? "★" : "☆"}</button>
+        </div>
+        <div class="tagline">
+          <span class="tag">${escapeHtml(p.type || "other")}</span>
+          ${p.needs_review ? `<span class="tag ${typeClass}">needs review</span>` : ""}
+          ${(p.keywords || []).slice(0, 4).map(k => `<span class="tag">${escapeHtml(k)}</span>`).join("")}
+        </div>
+        <div class="meta">${escapeHtml(p.citation || "")}</div>
+        ${doiUrl ? `<div><a href="${escapeHtml(doiUrl)}" target="_blank" rel="noopener">${escapeHtml(doiUrl)}</a></div>` : ""}
+        ${p.summary ? `<p>${escapeHtml(p.summary)}</p>` : ""}
+        ${p.design && p.design.length ? `<div class="section-title">Design / Method</div>${list(p.design)}` : ""}
+        ${p.findings && p.findings.length ? `<div class="section-title">Main Findings</div>${list(p.findings)}` : ""}
+        ${p.project_note ? `<div class="section-title">Project note</div><p>${escapeHtml(p.project_note)}</p>` : ""}
+        <textarea data-note="${escapeHtml(p.id)}" placeholder="Your notes">${escapeHtml(state.note || "")}</textarea>
+      </article>
+    `;
+  }
+  search.addEventListener("input", render);
+  categoryFilter.addEventListener("change", render);
+  starFilter.addEventListener("click", () => {
+    starredOnly = !starredOnly;
+    starFilter.classList.toggle("active", starredOnly);
+    render();
+  });
+  document.getElementById("exportNotes").addEventListener("click", () => {
+    const notes = {};
+    for (const p of data.papers || []) notes[p.id] = getState(p.id);
+    const blob = new Blob([JSON.stringify(notes, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "literature-review-notes.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  document.getElementById("importNotes").addEventListener("click", () => importFile.click());
+  importFile.addEventListener("change", async () => {
+    const file = importFile.files[0];
+    if (!file) return;
+    const notes = JSON.parse(await file.text());
+    for (const [id, state] of Object.entries(notes)) setState(id, state);
+    render();
+  });
+  render();
+})();
+</script>
+</body>
+</html>

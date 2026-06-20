@@ -1,0 +1,18 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+dist/
+build/
+*.egg-info/
+
+# Generated review outputs
+literature-review-data.json
+literature-review.html
+literature-review-notes.json
+changelog.md
+
+# Keep curated examples in the public repo.
+!examples/**/literature-review-data.json
+!examples/**/literature-review.html
