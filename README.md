@@ -5,8 +5,9 @@ Literature Review Agent is a small research workflow tool for turning a project 
 The current `v0.1` focuses on a stable local workflow:
 
 - draft a project-specific `project_config.yaml`
-- discover candidate papers from Crossref for human screening
-- enrich accepted records with DOI metadata and conservative draft summaries
+- discover candidate papers from Crossref and/or OpenAlex for human screening
+- chase citations (references and citing papers) from an existing review via OpenAlex
+- enrich accepted records with Crossref/OpenAlex metadata, abstracts, open-access PDF links, and conservative draft summaries
 - ingest BibTeX into structured `literature-review-data.json`
 - render a static `literature-review.html`
 - support local search, category filters, stars, notes, and note import/export in the browser
@@ -18,7 +19,7 @@ It is designed for research projects where the review criteria matter. The proje
 Install from the repo:
 
 ```bash
-git clone https://github.com/YOURNAME/literature-review-agent.git
+git clone https://github.com/Annawolf0128/literature-review-agent.git
 cd literature-review-agent
 python3 -m venv .venv
 source .venv/bin/activate
@@ -83,11 +84,12 @@ Generate a project config:
 lit-agent init-config --topic "AI adoption and labor market inequality"
 ```
 
-Discover candidate papers from Crossref:
+Discover candidate papers from Crossref and/or OpenAlex:
 
 ```bash
 lit-agent discover \
   --config project_config.yaml \
+  --source crossref,openalex \
   --max-results 50 \
   --limit 30
 ```
@@ -98,6 +100,23 @@ This writes:
 candidate-papers.json
 candidate-papers.csv
 ```
+
+`--source` overrides the backends in the config's `discovery.sources` list. Results from multiple backends are merged and de-duplicated by DOI (or normalized title), keeping the higher relevance score and unioned provenance.
+
+### Citation chasing
+
+Seeded from an existing review, OpenAlex can surface new candidates by following the papers your reviewed papers cite (`references`), the papers that cite them (`citations`), or `both`:
+
+```bash
+lit-agent discover \
+  --config project_config.yaml \
+  --from-data literature-review-data.json \
+  --cite-chase both \
+  --max-per-paper 25 \
+  --limit 40
+```
+
+Papers already in `--from-data` are excluded automatically. `--from-data` without `--cite-chase` still excludes already-included papers from a keyword search.
 
 Candidates are not automatically added to the review. Open the CSV/JSON, mark or copy the papers you want, then add accepted papers through BibTeX or a future candidate-approval command.
 
@@ -118,16 +137,17 @@ lit-agent accept \
 
 The accepted records are added as metadata stubs with `needs_review: true`.
 
-Enrich accepted records with Crossref metadata and conservative draft notes:
+Enrich accepted records with Crossref/OpenAlex metadata and conservative draft notes:
 
 ```bash
 lit-agent enrich \
   --config project_config.yaml \
   --data literature-review-data.json \
+  --source crossref,openalex \
   --limit 20
 ```
 
-The enrichment step fills missing title, year, authors, venue, DOI URL, abstract, keywords, and draft `summary` / `design` / `findings` fields when possible. It keeps `needs_review: true`, because metadata and abstracts are not a substitute for reading the paper.
+The enrichment step fills missing title, year, authors, venue, DOI URL, abstract, keywords, and draft `summary` / `design` / `findings` fields when possible. OpenAlex broadens abstract coverage (via `abstract_inverted_index`), and adds an open-access `pdf_url` and a `cited_by_count` that Crossref often lacks; OpenAlex concepts above a score threshold are folded into keywords. `--source` overrides the config's `enrichment.sources` (default `crossref, openalex`). Enrichment keeps `needs_review: true`, because metadata and abstracts are not a substitute for reading the paper.
 
 Build from BibTeX:
 
@@ -163,8 +183,13 @@ literature-review-agent/
 │   ├── bibtex.py
 │   ├── discover.py
 │   ├── enrich.py
+│   ├── openalex.py
 │   ├── review.py
 │   └── templates/literature_review.html
+├── tests/
+│   ├── test_openalex.py
+│   ├── test_discover.py
+│   └── test_enrich.py
 ├── examples/trust-game/
 │   ├── project_config.yaml
 │   ├── references.bib
@@ -192,9 +217,13 @@ Each paper record uses this shape:
   "design": ["A chooses how much of an endowment to send to B."],
   "findings": ["Many first movers send positive amounts."],
   "keywords": ["trust game", "reciprocity"],
+  "pdf_url": "https://example.org/berg1995.pdf",
+  "cited_by_count": 7421,
   "needs_review": false
 }
 ```
+
+`pdf_url` (open-access link) and `cited_by_count` are populated by OpenAlex enrichment when available.
 
 `v0.1` creates metadata stubs from BibTeX and marks them `needs_review: true`. The `enrich` command can fill a conservative first pass from DOI metadata and abstracts, but a human or a writing agent should still verify `summary`, `design`, and `findings` from the paper text.
 
@@ -228,11 +257,24 @@ summary_focus:
     - equilibrium or Bellman logic
 ```
 
+## Tests
+
+The test suite uses only the standard library (`unittest`) and runs fully offline — the OpenAlex network layer is isolated behind a single function that tests monkeypatch, so no API calls are made.
+
+```bash
+python3 -m unittest discover -s tests
+```
+
 ## Roadmap
+
+Done:
+
+- OpenAlex enrichment (abstracts, OA PDF links, citation counts, concepts)
+- OpenAlex/Crossref multi-source discovery with merge + de-duplication
+- citation chasing (references and citing papers) seeded from an existing review
 
 Planned next steps:
 
-- OpenAlex enrichment
 - PDF text extraction and summary support
 - changelog generation for added/removed/updated papers
 - project memory for repeated review updates

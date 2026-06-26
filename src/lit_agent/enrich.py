@@ -7,7 +7,11 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from . import openalex
 from .discover import CROSSREF_API, crossref_authors, crossref_year, first_text, normalize_text, project_terms
+
+
+DEFAULT_ENRICH_SOURCES = ("crossref", "openalex")
 
 
 def strip_markup(value: str) -> str:
@@ -95,6 +99,29 @@ def update_metadata_from_crossref(paper: dict[str, Any], item: dict[str, Any], o
     return changed
 
 
+def update_metadata_from_openalex(paper: dict[str, Any], work: dict[str, Any], overwrite: bool = False) -> bool:
+    changed = False
+    doi = openalex.openalex_doi(work)
+    fields = {
+        "title": openalex.openalex_title(work),
+        "year": openalex.openalex_year(work),
+        "authors": openalex.openalex_authors(work),
+        "doi": doi,
+        "url": f"https://doi.org/{doi}" if doi else "",
+        "venue": openalex.openalex_venue(work),
+    }
+    for field, value in fields.items():
+        if not value:
+            continue
+        if overwrite or not paper.get(field):
+            paper[field] = value
+            changed = True
+    if (overwrite or not paper.get("citation")) and compose_citation(paper):
+        paper["citation"] = compose_citation(paper)
+        changed = True
+    return changed
+
+
 def extract_keywords(paper: dict[str, Any], abstract: str, config: dict[str, Any]) -> list[str]:
     title = normalize_text(paper.get("title", "")).lower()
     text = " ".join([title, abstract.lower()])
@@ -155,12 +182,41 @@ def draft_design_and_findings(paper_type: str, abstract: str) -> tuple[list[str]
     return design, findings
 
 
-def enrich_paper(paper: dict[str, Any], config: dict[str, Any], mailto: str = "", overwrite: bool = False) -> bool:
+def enrich_paper(
+    paper: dict[str, Any],
+    config: dict[str, Any],
+    mailto: str = "",
+    overwrite: bool = False,
+    sources: tuple[str, ...] = DEFAULT_ENRICH_SOURCES,
+) -> bool:
     changed = False
-    item = crossref_work(paper.get("doi", ""), mailto=mailto) if paper.get("doi") else {}
+    used_sources: list[str] = []
+
+    item = crossref_work(paper.get("doi", ""), mailto=mailto) if ("crossref" in sources and paper.get("doi")) else {}
     if item:
         changed = update_metadata_from_crossref(paper, item, overwrite=overwrite) or changed
+        used_sources.append("Crossref")
     abstract = strip_markup(item.get("abstract", "")) if item else ""
+
+    # OpenAlex covers abstracts (via abstract_inverted_index) far more broadly
+    # than Crossref, and adds an open-access PDF link and citation count.
+    oa_work = openalex.fetch_work_by_doi(paper.get("doi", ""), mailto=mailto) if ("openalex" in sources and paper.get("doi")) else {}
+    oa_concepts: list[str] = []
+    if oa_work:
+        used_sources.append("OpenAlex")
+        changed = update_metadata_from_openalex(paper, oa_work, overwrite=overwrite) or changed
+        oa_abstract = openalex.reconstruct_abstract(oa_work.get("abstract_inverted_index"))
+        if oa_abstract and (overwrite or not abstract):
+            abstract = oa_abstract
+        pdf_url = openalex.openalex_oa_pdf_url(oa_work)
+        if pdf_url and (overwrite or not paper.get("pdf_url")):
+            paper["pdf_url"] = pdf_url
+            changed = True
+        cited = openalex.openalex_cited_by_count(oa_work)
+        if cited and (overwrite or not paper.get("cited_by_count")):
+            paper["cited_by_count"] = cited
+            changed = True
+        oa_concepts = openalex.openalex_concepts(oa_work)
 
     paper_type = infer_paper_type(paper, abstract)
     if overwrite or not paper.get("type") or paper.get("type") == "other":
@@ -184,11 +240,19 @@ def enrich_paper(paper: dict[str, Any], config: dict[str, Any], mailto: str = ""
         changed = True
 
     keywords = extract_keywords(paper, abstract, config)
+    for concept in oa_concepts:
+        if concept not in keywords:
+            keywords.append(concept)
+    keywords = keywords[:8]
     if keywords and (overwrite or not paper.get("keywords")):
         paper["keywords"] = keywords
         changed = True
 
-    enrichment_source = "Crossref metadata and abstract" if abstract else "Crossref metadata" if item else "metadata-only enrichment"
+    if used_sources:
+        detail = "metadata and abstract" if abstract else "metadata"
+        enrichment_source = f"{' + '.join(used_sources)} {detail}"
+    else:
+        enrichment_source = "metadata-only enrichment"
     source_bits = [bit for bit in [paper.get("source", ""), enrichment_source] if bit]
     if source_bits:
         paper["source"] = "; ".join(dict.fromkeys(source_bits))
@@ -205,6 +269,7 @@ def enrich_review_data(
     only_needs_review: bool = True,
     limit: int = 0,
     overwrite: bool = False,
+    sources: tuple[str, ...] = DEFAULT_ENRICH_SOURCES,
 ) -> tuple[dict[str, Any], int]:
     count = 0
     for paper in data.get("papers", []):
@@ -212,6 +277,6 @@ def enrich_review_data(
             continue
         if limit and count >= limit:
             break
-        if enrich_paper(paper, config, mailto=mailto, overwrite=overwrite):
+        if enrich_paper(paper, config, mailto=mailto, overwrite=overwrite, sources=sources):
             count += 1
     return data, count

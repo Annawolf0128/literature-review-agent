@@ -55,6 +55,15 @@ def first_text(value: Any) -> str:
     return normalize_text(value)
 
 
+def candidate_key(doi: Any, title: Any) -> str:
+    """Stable dedupe key for a candidate/paper: bare DOI if present, else a
+    whitespace/punctuation-stripped title."""
+    doi = normalize_text(doi).lower()
+    if doi:
+        return doi
+    return re.sub(r"\W+", "", normalize_text(title).lower())
+
+
 def crossref_year(item: dict[str, Any]) -> str:
     for key in ["published-print", "published-online", "published", "created", "issued"]:
         parts = item.get(key, {}).get("date-parts")
@@ -197,7 +206,7 @@ def candidates_from_crossref(items: list[dict[str, Any]], config: dict[str, Any]
     for item in items:
         doi = normalize_text(item.get("DOI", "")).lower()
         title = first_text(item.get("title"))
-        key = doi or re.sub(r"\W+", "", title.lower())
+        key = candidate_key(doi, title)
         if not key or key in seen or not title:
             continue
         seen.add(key)
@@ -223,6 +232,125 @@ def candidates_from_crossref(items: list[dict[str, Any]], config: dict[str, Any]
         candidates.append(candidate)
     candidates.sort(key=lambda c: (c.get("relevance_score", 0), c.get("is_referenced_by_count", 0)), reverse=True)
     return candidates
+
+
+def candidates_from_openalex(works: list[dict[str, Any]], config: dict[str, Any], query: str) -> list[dict[str, Any]]:
+    # Imported lazily: openalex.py imports from discover.py, so a top-level
+    # import here would be circular.
+    from .openalex import work_to_candidate
+
+    terms = project_terms(config, query)
+    candidates = []
+    seen = set()
+    for work in works:
+        candidate = work_to_candidate(work)
+        title = candidate.get("title", "")
+        key = candidate_key(candidate.get("doi", ""), title)
+        if not key or key in seen or not title:
+            continue
+        seen.add(key)
+        score, why = candidate_score(candidate, config, terms)
+        candidate["relevance_score"] = score
+        candidate["why"] = why
+        candidates.append(candidate)
+    candidates.sort(key=lambda c: (c.get("relevance_score", 0), c.get("is_referenced_by_count", 0) or 0), reverse=True)
+    return candidates
+
+
+def merge_candidate_lists(*lists: list[dict[str, Any]], exclude_keys: set[str] | None = None) -> list[dict[str, Any]]:
+    """Combine candidate lists from different sources, deduping by candidate_key.
+    Keeps the highest relevance score, unions the 'why' and 'source' provenance,
+    keeps the largest citation count, and backfills empty metadata fields."""
+    exclude = exclude_keys or set()
+    merged: dict[str, dict[str, Any]] = {}
+    for candidates in lists:
+        for candidate in candidates:
+            key = candidate_key(candidate.get("doi", ""), candidate.get("title", ""))
+            if not key or key in exclude:
+                continue
+            if key not in merged:
+                merged[key] = dict(candidate)
+                continue
+            existing = merged[key]
+            if candidate.get("relevance_score", 0) > existing.get("relevance_score", 0):
+                existing["relevance_score"] = candidate["relevance_score"]
+            existing["why"] = list(dict.fromkeys((existing.get("why") or []) + (candidate.get("why") or [])))
+            source_parts: list[str] = []
+            for source in [existing.get("source", ""), candidate.get("source", "")]:
+                for piece in str(source).split(";"):
+                    piece = piece.strip()
+                    if piece and piece not in source_parts:
+                        source_parts.append(piece)
+            existing["source"] = "; ".join(source_parts)
+            existing["is_referenced_by_count"] = max(
+                existing.get("is_referenced_by_count", 0) or 0,
+                candidate.get("is_referenced_by_count", 0) or 0,
+            )
+            for field in ("abstract", "pdf_url", "venue", "year", "url", "openalex_id", "authors"):
+                if not existing.get(field) and candidate.get(field):
+                    existing[field] = candidate[field]
+    result = list(merged.values())
+    result.sort(key=lambda c: (c.get("relevance_score", 0), c.get("is_referenced_by_count", 0) or 0), reverse=True)
+    return result
+
+
+def review_data_keys(data: dict[str, Any]) -> set[str]:
+    keys = set()
+    for paper in data.get("papers", []):
+        key = candidate_key(paper.get("doi", ""), paper.get("title", ""))
+        if key:
+            keys.add(key)
+    return keys
+
+
+def seed_dois_from_data(data: dict[str, Any]) -> list[str]:
+    dois = []
+    for paper in data.get("papers", []):
+        doi = normalize_text(paper.get("doi", "")).lower()
+        if doi:
+            dois.append(doi)
+    return list(dict.fromkeys(dois))
+
+
+def candidates_from_citations(
+    data: dict[str, Any],
+    config: dict[str, Any],
+    mailto: str = "",
+    direction: str = "both",
+    max_per_paper: int = 25,
+    query: str = "",
+) -> list[dict[str, Any]]:
+    """Citation-chasing discovery: from the DOIs already in the review, follow
+    OpenAlex references (papers they cite) and/or citations (papers that cite
+    them) to surface new candidates, excluding anything already in the review."""
+    from . import openalex as oa
+
+    exclude = review_data_keys(data)
+    project = config.get("project", {}) if isinstance(config.get("project"), dict) else {}
+    query = query or project.get("topic", "") or project.get("title", "")
+
+    referenced: list[str] = []
+    citing_works: list[dict[str, Any]] = []
+    for doi in seed_dois_from_data(data):
+        work = oa.fetch_work_by_doi(doi, mailto=mailto)
+        if not work:
+            continue
+        if direction in ("references", "both"):
+            referenced.extend(oa.referenced_ids(work)[:max_per_paper])
+        if direction in ("citations", "both"):
+            citing_works.extend(
+                oa.fetch_citing_works(work.get("id", ""), mailto=mailto, max_results=max_per_paper)
+            )
+
+    works: list[dict[str, Any]] = []
+    if referenced:
+        works.extend(oa.fetch_works_by_ids(referenced, mailto=mailto))
+    works.extend(citing_works)
+
+    candidates = candidates_from_openalex(works, config, query)
+    for candidate in candidates:
+        candidate["why"] = list(dict.fromkeys((candidate.get("why") or []) + ["found via citation chasing"]))
+    return merge_candidate_lists(candidates, exclude_keys=exclude)
 
 
 def candidate_to_review_record(candidate: dict[str, Any], category: str) -> dict[str, Any]:

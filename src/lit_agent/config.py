@@ -101,6 +101,17 @@ def default_config(topic: str, discipline: str = "economics", title: Optional[st
                 "predictive or convergent validity",
             ],
         },
+        "discovery": {
+            # Backends used by `lit-agent discover`. "crossref" keyword search is
+            # the default; add "openalex" to also search OpenAlex.
+            "sources": ["crossref"],
+        },
+        "enrichment": {
+            # Metadata/abstract backends used by `lit-agent enrich`. OpenAlex is
+            # included because it covers abstracts and open-access PDF links that
+            # Crossref often lacks.
+            "sources": ["crossref", "openalex"],
+        },
         "outputs": {
             "data": "literature-review-data.json",
             "html": "literature-review.html",
