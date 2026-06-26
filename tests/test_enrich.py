@@ -7,6 +7,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 
 from lit_agent import enrich as en
 from lit_agent import openalex as oa
+from lit_agent import pdftext as pt
 
 
 CONFIG = {
@@ -69,6 +70,37 @@ class EnrichCrossrefOnly(unittest.TestCase):
         self.assertEqual(paper["title"], "Trust and Reciprocity")
         self.assertEqual(paper["abstract"], "We study trust.")
         self.assertIn("Crossref", paper["source"])
+
+
+FULL_TEXT = (
+    "Abstract. We study trust in an investment game. "
+    "Methods. We recruit 32 participants who each receive a 10 dollar endowment "
+    "and decide how much to send. "
+    "Results. We find first movers send positive amounts and reciprocity is significant. "
+    "Conclusion. Trust sustains exchange."
+)
+
+
+class EnrichPdfSource(unittest.TestCase):
+    def test_full_text_drafts_design_and_findings(self):
+        paper = {"doi": "10.1/x", "title": "Trust", "pdf_url": "https://x.org/p.pdf"}
+        with mock.patch.object(oa, "fetch_work_by_doi", return_value=OA_WORK), \
+             mock.patch.object(pt, "fetch_pdf_text", return_value=FULL_TEXT) as fetch:
+            changed = en.enrich_paper(paper, CONFIG, sources=("openalex", "pdf"), cache_dir="/tmp/cache")
+        self.assertTrue(changed)
+        fetch.assert_called_once()
+        self.assertIn("Full text (PDF)", paper["source"])
+        # Design/findings are grounded excerpts tagged for verification.
+        self.assertTrue(any("from full text" in d for d in paper["design"]))
+        self.assertTrue(any("reciprocity" in f.lower() or "positive amounts" in f.lower() for f in paper["findings"]))
+
+    def test_pdf_source_without_text_falls_back(self):
+        paper = {"doi": "10.1/x", "title": "Trust", "pdf_url": "https://x.org/p.pdf"}
+        with mock.patch.object(oa, "fetch_work_by_doi", return_value=OA_WORK), \
+             mock.patch.object(pt, "fetch_pdf_text", return_value=""):
+            en.enrich_paper(paper, CONFIG, sources=("openalex", "pdf"))
+        self.assertNotIn("Full text (PDF)", paper.get("source", ""))
+        self.assertTrue(paper["design"])  # still has conservative placeholder
 
 
 class EnrichReviewData(unittest.TestCase):

@@ -109,7 +109,9 @@ def default_config(topic: str, discipline: str = "economics", title: Optional[st
         "enrichment": {
             # Metadata/abstract backends used by `lit-agent enrich`. OpenAlex is
             # included because it covers abstracts and open-access PDF links that
-            # Crossref often lacks.
+            # Crossref often lacks. Add "pdf" to also download open-access PDFs
+            # and draft grounded notes from full text (needs the optional pypdf
+            # extra: pip install -e .[pdf]).
             "sources": ["crossref", "openalex"],
         },
         "outputs": {

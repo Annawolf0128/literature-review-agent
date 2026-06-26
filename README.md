@@ -8,6 +8,7 @@ The current `v0.1` focuses on a stable local workflow:
 - discover candidate papers from Crossref and/or OpenAlex for human screening
 - chase citations (references and citing papers) from an existing review via OpenAlex
 - enrich accepted records with Crossref/OpenAlex metadata, abstracts, open-access PDF links, and conservative draft summaries
+- optionally extract open-access PDF full text and draft grounded design/findings notes from the paper's own sections
 - ingest BibTeX into structured `literature-review-data.json`
 - render a static `literature-review.html`
 - support local search, category filters, stars, notes, and note import/export in the browser
@@ -149,6 +150,23 @@ lit-agent enrich \
 
 The enrichment step fills missing title, year, authors, venue, DOI URL, abstract, keywords, and draft `summary` / `design` / `findings` fields when possible. OpenAlex broadens abstract coverage (via `abstract_inverted_index`), and adds an open-access `pdf_url` and a `cited_by_count` that Crossref often lacks; OpenAlex concepts above a score threshold are folded into keywords. `--source` overrides the config's `enrichment.sources` (default `crossref, openalex`). Enrichment keeps `needs_review: true`, because metadata and abstracts are not a substitute for reading the paper.
 
+### Full-text enrichment from PDFs
+
+Add `pdf` to the sources to download each record's open-access PDF and draft grounded `summary` / `design` / `findings` from the paper's own sections (abstract, methods, results). This needs the optional `pypdf` extra:
+
+```bash
+pip install -e .[pdf]
+
+lit-agent enrich \
+  --config project_config.yaml \
+  --data literature-review-data.json \
+  --source crossref,openalex,pdf \
+  --pdf-dir .pdf-cache \
+  --limit 10
+```
+
+Each drafted line is an excerpt taken from the paper's own text and tagged `[from full text — verify against the paper]`, so nothing is invented — a human still confirms it. PDFs are cached under `--pdf-dir` to avoid re-downloading. When a PDF can't be fetched or read, enrichment falls back to the abstract-based draft. Records still keep `needs_review: true`.
+
 Build from BibTeX:
 
 ```bash
@@ -184,12 +202,14 @@ literature-review-agent/
 │   ├── discover.py
 │   ├── enrich.py
 │   ├── openalex.py
+│   ├── pdftext.py
 │   ├── review.py
 │   └── templates/literature_review.html
 ├── tests/
 │   ├── test_openalex.py
 │   ├── test_discover.py
-│   └── test_enrich.py
+│   ├── test_enrich.py
+│   └── test_pdftext.py
 ├── examples/trust-game/
 │   ├── project_config.yaml
 │   ├── references.bib
@@ -272,10 +292,10 @@ Done:
 - OpenAlex enrichment (abstracts, OA PDF links, citation counts, concepts)
 - OpenAlex/Crossref multi-source discovery with merge + de-duplication
 - citation chasing (references and citing papers) seeded from an existing review
+- PDF full-text extraction with grounded design/findings drafting
 
 Planned next steps:
 
-- PDF text extraction and summary support
 - changelog generation for added/removed/updated papers
 - project memory for repeated review updates
 

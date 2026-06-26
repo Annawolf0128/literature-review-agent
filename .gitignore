@@ -13,6 +13,10 @@ literature-review.html
 literature-review-notes.json
 changelog.md
 
+# Cached downloaded PDFs
+.pdf-cache/
+*.pdf
+
 # Keep curated examples in the public repo.
 !examples/**/literature-review-data.json
 !examples/**/literature-review.html

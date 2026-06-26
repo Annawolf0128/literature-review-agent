@@ -8,10 +8,22 @@ import urllib.request
 from typing import Any
 
 from . import openalex
+from . import pdftext
 from .discover import CROSSREF_API, crossref_authors, crossref_year, first_text, normalize_text, project_terms
 
 
 DEFAULT_ENRICH_SOURCES = ("crossref", "openalex")
+
+# Term cues used to pull design/findings sentences out of full text.
+DESIGN_CUES = [
+    "experiment", "treatment", "subjects", "participants", "sample", "design",
+    "protocol", "we run", "we conduct", "data", "regression", "identification",
+    "model", "equilibrium", "estimate", "survey", "elicit",
+]
+FINDINGS_CUES = [
+    "we find", "we show", "results", "findings", "significant", "effect",
+    "increase", "decrease", "higher", "lower", "evidence", "conclude", "suggests",
+]
 
 
 def strip_markup(value: str) -> str:
@@ -182,12 +194,43 @@ def draft_design_and_findings(paper_type: str, abstract: str) -> tuple[list[str]
     return design, findings
 
 
+def drafts_from_full_text(
+    paper: dict[str, Any], full_text: str, config: dict[str, Any]
+) -> tuple[str, list[str], list[str]]:
+    """Build grounded summary/design/findings from extracted PDF full text.
+
+    Following PaperQA2-style discipline, every drafted line is an excerpt taken
+    verbatim-ish from the paper's own text (abstract/method/results sections when
+    detectable), tagged so a human knows it still needs verification. Returns
+    ("", [], []) when no usable text is found."""
+    clean = normalize_text(full_text)
+    if not clean:
+        return "", [], []
+    sections = pdftext.split_into_sections(clean)
+    title = normalize_text(paper.get("title", "")).lower()
+    terms = project_terms(config, title)
+
+    summary_src = sections.get("abstract") or clean
+    summary = " ".join(pdftext.split_sentences(summary_src)[:3])[:700]
+
+    method_src = sections.get("method") or clean
+    design_excerpt = pdftext.pick_relevant_excerpt(method_src, DESIGN_CUES + terms)
+    results_src = sections.get("results") or sections.get("conclusion") or clean
+    findings_excerpt = pdftext.pick_relevant_excerpt(results_src, FINDINGS_CUES + terms)
+
+    note = "[from full text — verify against the paper]"
+    design = [f"{design_excerpt} {note}"] if design_excerpt else []
+    findings = [f"{findings_excerpt} {note}"] if findings_excerpt else []
+    return summary, design, findings
+
+
 def enrich_paper(
     paper: dict[str, Any],
     config: dict[str, Any],
     mailto: str = "",
     overwrite: bool = False,
     sources: tuple[str, ...] = DEFAULT_ENRICH_SOURCES,
+    cache_dir: str = "",
 ) -> bool:
     changed = False
     used_sources: list[str] = []
@@ -218,7 +261,17 @@ def enrich_paper(
             changed = True
         oa_concepts = openalex.openalex_concepts(oa_work)
 
-    paper_type = infer_paper_type(paper, abstract)
+    # Optional full-text pass: download/extract the PDF and draft grounded
+    # summary/design/findings from the paper's own text. Opt-in because it
+    # downloads files and needs the optional pypdf dependency.
+    full_text = ""
+    if "pdf" in sources:
+        pdf_source = paper.get("pdf_url") or paper.get("pdf_path") or ""
+        full_text = pdftext.fetch_pdf_text(pdf_source, mailto=mailto, cache_dir=cache_dir or None)
+        if full_text:
+            used_sources.append("Full text (PDF)")
+
+    paper_type = infer_paper_type(paper, abstract or full_text[:4000])
     if overwrite or not paper.get("type") or paper.get("type") == "other":
         paper["type"] = paper_type
         changed = True
@@ -227,11 +280,15 @@ def enrich_paper(
         paper["abstract"] = abstract
         changed = True
 
+    ft_summary, ft_design, ft_findings = drafts_from_full_text(paper, full_text, config) if full_text else ("", [], [])
+
     if overwrite or not paper.get("summary"):
-        paper["summary"] = draft_summary(paper, abstract)
+        paper["summary"] = ft_summary or draft_summary(paper, abstract)
         changed = True
 
     design, findings = draft_design_and_findings(paper_type, abstract)
+    design = ft_design or design
+    findings = ft_findings or findings
     if overwrite or not paper.get("design"):
         paper["design"] = design
         changed = True
@@ -270,6 +327,7 @@ def enrich_review_data(
     limit: int = 0,
     overwrite: bool = False,
     sources: tuple[str, ...] = DEFAULT_ENRICH_SOURCES,
+    cache_dir: str = "",
 ) -> tuple[dict[str, Any], int]:
     count = 0
     for paper in data.get("papers", []):
@@ -277,6 +335,6 @@ def enrich_review_data(
             continue
         if limit and count >= limit:
             break
-        if enrich_paper(paper, config, mailto=mailto, overwrite=overwrite, sources=sources):
+        if enrich_paper(paper, config, mailto=mailto, overwrite=overwrite, sources=sources, cache_dir=cache_dir):
             count += 1
     return data, count

@@ -26,7 +26,7 @@ from .review import build_html, load_json, merge_records, save_json
 PACKAGE_ROOT = Path(__file__).resolve().parent
 DEFAULT_TEMPLATE = PACKAGE_ROOT / "templates" / "literature_review.html"
 
-VALID_SOURCES = {"crossref", "openalex"}
+VALID_SOURCES = {"crossref", "openalex", "pdf"}
 
 
 def config_output(config: dict, key: str, fallback: str) -> str:
@@ -172,6 +172,7 @@ def cmd_enrich(args: argparse.Namespace) -> None:
         limit=args.limit,
         overwrite=args.overwrite,
         sources=sources,
+        cache_dir=args.pdf_dir,
     )
     save_json(data, output_path)
     print(f"Sources: {', '.join(sources)}")
@@ -245,7 +246,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--limit", type=int, default=0, help="Maximum records to enrich.")
     p.add_argument("--all", action="store_true", help="Also enrich records where needs_review is false.")
     p.add_argument("--overwrite", action="store_true", help="Overwrite existing summary/design/findings/metadata fields.")
-    p.add_argument("--source", default="", help="Comma-separated backends: crossref, openalex. Defaults to config enrichment.sources.")
+    p.add_argument("--source", default="", help="Comma-separated backends: crossref, openalex, pdf. Defaults to config enrichment.sources.")
+    p.add_argument("--pdf-dir", default="", help="Directory to cache downloaded PDFs when the 'pdf' source is enabled.")
     p.add_argument("--mailto", default="", help="Optional email for polite Crossref/OpenAlex API usage.")
     p.set_defaults(func=cmd_enrich)
 

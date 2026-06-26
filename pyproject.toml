@@ -16,6 +16,9 @@ dependencies = [
   "PyYAML>=6.0"
 ]
 
+[project.optional-dependencies]
+pdf = ["pypdf>=4.0"]
+
 [project.scripts]
 lit-agent = "lit_agent.cli:main"
 
