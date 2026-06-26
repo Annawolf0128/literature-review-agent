@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime as dt
 from pathlib import Path
 from typing import Optional
@@ -34,6 +35,23 @@ def config_output(config: dict, key: str, fallback: str) -> str:
     return str(outputs.get(key) or fallback)
 
 
+def maybe_write_changelog(args: argparse.Namespace, config: dict, old_data: dict, new_data: dict, action: str) -> None:
+    """If --changelog was passed, diff old vs new review data and prepend a dated
+    section to the changelog file (newest first)."""
+    if not getattr(args, "changelog", False):
+        return
+    from .changelog import diff_is_empty, diff_reviews, prepend_changelog, render_changelog_section
+
+    diff = diff_reviews(old_data, new_data)
+    path = Path(getattr(args, "changelog_file", "") or config_output(config, "changelog", "changelog.md"))
+    section = render_changelog_section(diff, action=action)
+    existing = path.read_text(encoding="utf-8") if path.exists() else ""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(prepend_changelog(existing, section), encoding="utf-8")
+    suffix = " (no changes)" if diff_is_empty(diff) else ""
+    print(f"Updated changelog: {path}{suffix}")
+
+
 def resolve_sources(cli_value: str, config: dict, section_key: str, default: tuple[str, ...]) -> tuple[str, ...]:
     """Resolve which backends to use: explicit CLI --source wins, else the
     config section's `sources` list, else the built-in default."""
@@ -60,6 +78,7 @@ def cmd_build(args: argparse.Namespace) -> None:
     template_path = Path(args.template or DEFAULT_TEMPLATE)
 
     base = load_json(data_path)
+    old_data = copy.deepcopy(base)
     base["title"] = title
 
     if args.bib:
@@ -77,14 +96,19 @@ def cmd_build(args: argparse.Namespace) -> None:
         save_json(base, data_path)
 
     build_html(data_path, html_path, template_path, title=title)
+    maybe_write_changelog(args, config, old_data, base, action="build")
     print(f"Wrote review data: {data_path}")
     print(f"Wrote review HTML: {html_path}")
 
 
 def cmd_merge(args: argparse.Namespace) -> None:
+    config = load_config(args.config) if getattr(args, "config", "") else {}
     base = load_json(args.base)
+    old_data = copy.deepcopy(base)
     incoming = load_json(args.incoming)
-    output = save_json(merge_records(base, incoming), args.output)
+    merged = merge_records(base, incoming)
+    output = save_json(merged, args.output)
+    maybe_write_changelog(args, config, old_data, merged, action="merge")
     print(f"Wrote merged review data: {output}")
 
 
@@ -164,6 +188,7 @@ def cmd_enrich(args: argparse.Namespace) -> None:
     output_path = Path(args.output or data_path)
     sources = resolve_sources(args.source, config, "enrichment", DEFAULT_ENRICH_SOURCES)
     data = load_json(data_path)
+    old_data = copy.deepcopy(data)
     data, changed = enrich_review_data(
         data,
         config,
@@ -175,6 +200,7 @@ def cmd_enrich(args: argparse.Namespace) -> None:
         cache_dir=args.pdf_dir,
     )
     save_json(data, output_path)
+    maybe_write_changelog(args, config, old_data, data, action="enrich")
     print(f"Sources: {', '.join(sources)}")
     print(f"Enriched records: {changed}")
     print(f"Wrote review data: {output_path}")
@@ -203,12 +229,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--title", default="", help="Override review title.")
     p.add_argument("--category", default="", help="Category for newly ingested BibTeX records.")
     p.add_argument("--replace", action="store_true", help="Replace existing data when ingesting BibTeX.")
+    p.add_argument("--changelog", action="store_true", help="Record added/removed/updated papers to the changelog file.")
+    p.add_argument("--changelog-file", default="", help="Changelog path. Defaults to config outputs.changelog.")
     p.set_defaults(func=cmd_build)
 
     p = sub.add_parser("merge", help="Merge one literature-review-data JSON into another.")
     p.add_argument("--base", required=True)
     p.add_argument("--incoming", required=True)
     p.add_argument("--output", required=True)
+    p.add_argument("--config", default="", help="Optional project config YAML (used for changelog output path).")
+    p.add_argument("--changelog", action="store_true", help="Record added/removed/updated papers to the changelog file.")
+    p.add_argument("--changelog-file", default="", help="Changelog path. Defaults to config outputs.changelog.")
     p.set_defaults(func=cmd_merge)
 
     p = sub.add_parser("discover", help="Search Crossref/OpenAlex for candidate papers and write reviewable candidate files.")
@@ -249,6 +280,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--source", default="", help="Comma-separated backends: crossref, openalex, pdf. Defaults to config enrichment.sources.")
     p.add_argument("--pdf-dir", default="", help="Directory to cache downloaded PDFs when the 'pdf' source is enabled.")
     p.add_argument("--mailto", default="", help="Optional email for polite Crossref/OpenAlex API usage.")
+    p.add_argument("--changelog", action="store_true", help="Record enriched/updated fields to the changelog file.")
+    p.add_argument("--changelog-file", default="", help="Changelog path. Defaults to config outputs.changelog.")
     p.set_defaults(func=cmd_enrich)
 
     return parser

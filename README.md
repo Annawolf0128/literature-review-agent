@@ -188,6 +188,17 @@ lit-agent merge \
   --output literature-review-data.json
 ```
 
+### Changelog
+
+`build`, `merge`, and `enrich` can record what changed between the old and new review state. Pass `--changelog` to diff papers by DOI (or normalized title) and prepend a dated section — added, removed, and per-field updated papers — to `changelog.md` (newest first):
+
+```bash
+lit-agent enrich --config project_config.yaml --changelog
+lit-agent merge --base review.json --incoming new.json --output review.json --changelog
+```
+
+The changelog path defaults to the config's `outputs.changelog`; override it with `--changelog-file`. This makes repeated review updates auditable and feeds future project-memory features.
+
 ## Repository Structure
 
 ```text
@@ -203,13 +214,15 @@ literature-review-agent/
 │   ├── enrich.py
 │   ├── openalex.py
 │   ├── pdftext.py
+│   ├── changelog.py
 │   ├── review.py
 │   └── templates/literature_review.html
 ├── tests/
 │   ├── test_openalex.py
 │   ├── test_discover.py
 │   ├── test_enrich.py
-│   └── test_pdftext.py
+│   ├── test_pdftext.py
+│   └── test_changelog.py
 ├── examples/trust-game/
 │   ├── project_config.yaml
 │   ├── references.bib
@@ -293,10 +306,10 @@ Done:
 - OpenAlex/Crossref multi-source discovery with merge + de-duplication
 - citation chasing (references and citing papers) seeded from an existing review
 - PDF full-text extraction with grounded design/findings drafting
+- changelog generation for added/removed/updated papers
 
 Planned next steps:
 
-- changelog generation for added/removed/updated papers
 - project memory for repeated review updates
 
 ## Copyright Note
